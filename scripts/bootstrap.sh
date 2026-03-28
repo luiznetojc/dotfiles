@@ -33,6 +33,7 @@ brew install \
   ripgrep \
   nvm \
   node \
+  neovim \
   coreutils
 
 # fzf keybindings + completion
@@ -43,7 +44,7 @@ brew install \
 # -------------------------
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
   echo "[*] Instalando Oh My Zsh (unattended)..."
-  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended[web:59][web:53]
+  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 else
   echo "[*] Oh My Zsh já instalado."
 fi
@@ -53,24 +54,24 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 # powerlevel10k
 if [ ! -d "$ZSH_CUSTOM/themes/powerlevel10k" ]; then
   echo "[*] Instalando tema powerlevel10k..."
-  git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$ZSH_CUSTOM/themes/powerlevel10k"[web:35]
+  git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$ZSH_CUSTOM/themes/powerlevel10k"
 fi
 
 # plugins: zsh-autosuggestions, zsh-syntax-highlighting, fzf-tab, zsh-completions
 if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
-  git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"[web:41]
+  git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
 fi
 
 if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
-  git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"[web:35]
+  git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
 fi
 
 if [ ! -d "$ZSH_CUSTOM/plugins/fzf-tab" ]; then
-  git clone https://github.com/Aloxaf/fzf-tab "$ZSH_CUSTOM/plugins/fzf-tab"[web:38]
+  git clone https://github.com/Aloxaf/fzf-tab "$ZSH_CUSTOM/plugins/fzf-tab"
 fi
 
 if [ ! -d "$ZSH_CUSTOM/plugins/zsh-completions" ]; then
-  git clone https://github.com/zsh-users/zsh-completions "$ZSH_CUSTOM/plugins/zsh-completions"[web:41]
+  git clone https://github.com/zsh-users/zsh-completions "$ZSH_CUSTOM/plugins/zsh-completions"
 fi
 
 # -------------------------
@@ -94,6 +95,9 @@ backup_file "$HOME/.p10k.zsh"
 ln -fs "$DOTFILES_DIR/zsh/.zshrc" "$HOME/.zshrc"
 ln -fs "$DOTFILES_DIR/zsh/.p10k.zsh" "$HOME/.p10k.zsh"
 
+mkdir -p "$HOME/.config"
+ln -fs "$DOTFILES_DIR/nvim" "$HOME/.config/nvim"
+
 echo "[*] Symlinks criados."
 
 # -------------------------
@@ -101,7 +105,7 @@ echo "[*] Symlinks criados."
 # -------------------------
 if ! grep -q "$(command -v zsh)" /etc/shells; then
   echo "[*] Adicionando zsh do Homebrew em /etc/shells (precisa de sudo)..."
-  echo "$(command -v zsh)" | sudo tee -a /etc/shells >/dev/null[web:45]
+  echo "$(command -v zsh)" | sudo tee -a /etc/shells >/dev/null
 fi
 
 if [ "$SHELL" != "$(command -v zsh)" ]; then

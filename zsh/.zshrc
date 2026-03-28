@@ -52,15 +52,6 @@ source $ZSH/oh-my-zsh.sh
 # =========================
 # COMPLETION CORE
 # =========================
-autoload -Uz compinit
-# cache de completion para acelerar
-if [[ -n $ZDOTDIR ]]; then
-  compinit -d $ZDOTDIR/.zcompdump
-else
-  compinit -d $HOME/.zcompdump
-fi
-
-
 # menu interativo
 zstyle ':completion:*' menu select
 zstyle ':completion:*' group-name ''
@@ -105,10 +96,6 @@ export FZF_DEFAULT_OPTS='
 
 
 export FZF_CTRL_R_OPTS='--preview "echo {}" --preview-window up:3:wrap'
-
-
-# Atalhos padrão do fzf
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 
 # =========================
@@ -301,8 +288,17 @@ command -v ng >/dev/null && source <(ng completion script)
 # NVM
 # =========================
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
+
+# Lazy load do NVM para reduzir startup
+lazy_load_nvm() {
+  unset -f nvm node npm npx
+  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+  [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
+}
+nvm() { lazy_load_nvm; nvm "$@"; }
+node() { lazy_load_nvm; node "$@"; }
+npm() { lazy_load_nvm; npm "$@"; }
+npx() { lazy_load_nvm; npx "$@"; }
 
 
 # =========================
