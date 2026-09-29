@@ -1,0 +1,27 @@
+#compdef app-install inst instalar
+
+_app_install() {
+    local curcontext="$curcontext" state line
+    typeset -A opt_args
+
+    _arguments -s \
+        '(-h --help)'{-h,--help}'[Exibe ajuda e exemplos de uso]' \
+        '(-l --list)'{-l,--list}'[Lista aplicativos instalados por esta ferramenta]' \
+        '(-r --remove)'{-r,--remove}'[Remove um aplicativo instalado de forma limpa]:aplicativo:->installed_apps' \
+        '*:arquivo ou URL:->files'
+
+    case $state in
+        installed_apps)
+            local -a apps
+            if [[ -d "$HOME/.local/share/apps" ]]; then
+                apps=($HOME/.local/share/apps/*(N/:t))
+                _describe -t installed_apps 'aplicativo instalado' apps
+            fi
+            ;;
+        files)
+            _files -g "*.(tar.gz|tgz|tar.xz|txz|tar.bz2|tbz2|tar|zip|AppImage)(-.)"
+            ;;
+    esac
+}
+
+_app_install "$@"

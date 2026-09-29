@@ -13,11 +13,32 @@ return {
         },
         renderer = {
           group_empty = true,
+          highlight_git = true,
+          highlight_diagnostics = true,
+          icons = {
+            show = {
+              git = true,
+            },
+          },
         },
         filters = {
           dotfiles = false,
         },
-        git = { ignore = false },
+        git = {
+          enable = true,
+          ignore = false,
+        },
+        diagnostics = {
+          enable = true,
+          show_on_dirs = true,
+          show_on_open_dirs = true,
+          icons = {
+            hint = "",
+            info = "",
+            warning = "",
+            error = "",
+          },
+        },
         actions = {
           open_file = {
             quit_on_open = false,
@@ -27,6 +48,7 @@ return {
 
       vim.keymap.set("n", "<leader>e", "<cmd>NvimTreeToggle<CR>", { desc = "Explorer" })
       vim.keymap.set("n", "<leader>o", "<cmd>NvimTreeFocus<CR>", { desc = "Focus explorer" })
+      vim.keymap.set("n", "<C-b>", "<cmd>NvimTreeToggle<CR>", { desc = "Toggle explorer" })
     end,
   },
 }

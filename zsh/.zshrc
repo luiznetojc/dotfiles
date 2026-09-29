@@ -1,38 +1,21 @@
 # =========================
-# POWERLEVEL10K INSTANT PROMPT
-# =========================
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
-
-
-# =========================
 # PATHS
 # =========================
-export PATH="/opt/homebrew/bin:$PATH"
-export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
-export PATH="$PATH:$HOME/.dotnet/tools"
-export PATH="$HOME/.codeium/windsurf/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/.codeium/windsurf/bin:$HOME/.dotnet/tools:$PATH"
 
-
-# Mostrar PATH em linhas (útil para debug)
 alias path='echo -e ${PATH//:/\\n}'
-
 
 # =========================
 # OH MY ZSH
 # =========================
 export ZSH="$HOME/.oh-my-zsh"
-ZSH_THEME="powerlevel10k/powerlevel10k"
-
+# Desativado porque o Starship cuida do prompt (evita sobreposição/lentidão)
+ZSH_THEME=""
 
 plugins=(
   git
-  zsh-interactive-cd
   zsh-autosuggestions
   zsh-completions
-  zsh-syntax-highlighting
-  fzf
   fzf-tab
   web-search
   copypath
@@ -40,119 +23,123 @@ plugins=(
   dirhistory
   aliases
   alias-finder
-  macos
   node
   npm
+  zsh-syntax-highlighting
 )
 
-
 source $ZSH/oh-my-zsh.sh
-
+# =========================
+# PLUGINS (ARCH WAY)
+# =========================
 
 # =========================
 # COMPLETION CORE
 # =========================
-# menu interativo
-zstyle ':completion:*' menu select
+zstyle ':completion:*' menu no
 zstyle ':completion:*' group-name ''
 zstyle ':completion:*' verbose yes
+zstyle ':completion:*:descriptions' format '[%d]'
+zstyle ':completion:*:messages' format '%d'
+zstyle ':completion:*:warnings' format 'Nenhuma correspondência: %d'
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
-
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 
 # =========================
-# FZF CONFIG (Mac - Funciona 100%)
+# FZF (ARCH)
 # =========================
+source /usr/share/fzf/key-bindings.zsh
+source /usr/share/fzf/completion.zsh
 
-
-# Carrega UMA VEZ só
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-
-# Define fzf-cd-widget (que faltava)
 fzf-cd-widget() {
   local dir
-  dir=$(find . -path '*/\\.*' -prune \
-    -o -type d -print 2>/dev/null | fzf +m \
-    --preview 'eza --tree --level=2 {} || ls -la {}' \
-    --preview-window right:50%) &&
-  cd "$dir" || return 1
+  dir=$(fd -t d . | fzf --preview 'eza --tree --level=2 {} || ls -la {}') && cd "$dir"
 }
-
-
-# Registra como widget ZLE
 zle -N fzf-cd-widget
-
-
-# Bind: Ctrl+Option+C no Mac
-bindkey '^[c' fzf-cd-widget  # ESC+C (mais confiável que Ctrl+Option)
-
+bindkey '^[c' fzf-cd-widget
 
 export FZF_DEFAULT_OPTS='
   --height 40%
   --layout=reverse
   --border
-  --preview "bat --style=numbers --color=always {} 2>/dev/null | head -200 || head -200 {}"
+  --preview-window=right:50%:wrap
 '
-
-
 export FZF_CTRL_R_OPTS='--preview "echo {}" --preview-window up:3:wrap'
 
-
 # =========================
-# FZF-TAB (COMPLETION BONITA)
+# FZF-TAB (PREVIEWS LATERAIS)
 # =========================
+zstyle ':fzf-tab:*' use-fzf-default-opts yes
 zstyle ':fzf-tab:*' switch-group ',' '.'
+zstyle ':fzf-tab:*' fzf-min-height 28
+zstyle ':fzf-tab:*' fzf-pad 4
+zstyle ':fzf-tab:*' fzf-flags --preview-window=right:60%:wrap --bind=ctrl-d:preview-page-down,ctrl-u:preview-page-up
 
-
-zstyle ':fzf-tab:complete:*' fzf-preview '
-  if [ -d $realpath ]; then
-    command -v eza >/dev/null && eza --tree --level=2 --icons $realpath || ls $realpath
+# 1. Preview de comandos em geral (o que cada comando/script/alias/função faz)
+zstyle ':fzf-tab:complete:-command-:*' fzf-preview '
+  cmd="$word"
+  if alias "$cmd" >/dev/null 2>&1; then
+    echo -e "\033[1;36m=== ALIAS ===\033[0m"
+    alias "$cmd"
+  elif (( $+functions[$cmd] )); then
+    echo -e "\033[1;36m=== FUNÇÃO SHELL ===\033[0m"
+    functions "$cmd" | head -n 35
+  elif tldr -L en --color always "$cmd" 2>/dev/null; then
+    :
+  elif whatis "$cmd" >/dev/null 2>&1; then
+    echo -e "\033[1;36m=== MANUAL ===\033[0m"
+    whatis "$cmd" 2>/dev/null
+    echo ""
+    man "$cmd" 2>/dev/null | col -b | head -n 35
+  elif "$cmd" --help >/dev/null 2>&1; then
+    echo -e "\033[1;36m=== AJUDA (--help) ===\033[0m"
+    "$cmd" --help 2>&1 | head -n 35
   else
-    command -v bat >/dev/null && bat --style=numbers --color=always $realpath 2>/dev/null | head -200 || head -200 $realpath
+    echo -e "\033[1;33mComando:\033[0m $cmd"
+    type -a "$cmd" 2>/dev/null
   fi
 '
 
+# 2. Preview de arquivos, diretórios e descrições de opções
+zstyle ':fzf-tab:complete:*:*' fzf-preview '
+  if [[ -n "$realpath" && -d "$realpath" ]]; then
+    eza --tree --level=2 --icons "$realpath" 2>/dev/null || ls -la "$realpath"
+  elif [[ -n "$realpath" && -f "$realpath" ]]; then
+    bat --style=numbers --color=always "$realpath" 2>/dev/null | head -200
+  elif [[ -n "$desc" ]]; then
+    echo -e "\033[1;34m=== DESCRIÇÃO ===\033[0m\n$desc"
+  fi
+'
 
-# navegação pelo fzf-tab no TAB
-bindkey '^I' fzf-tab-complete
-
+# 3. Previews úteis para comandos específicos
+zstyle ':fzf-tab:complete:systemctl-*:*' fzf-preview 'SYSTEMD_COLORS=1 systemctl status "$word" 2>/dev/null'
+zstyle ':fzf-tab:complete:git-(checkout|switch):*' fzf-preview 'git log --color=always -n 5 "$word" 2>/dev/null'
+zstyle ':fzf-tab:complete:(-parameter-|-brace-parameter-|-export-):*' fzf-preview 'echo ${(P)word}'
+zstyle ':fzf-tab:complete:(kill|pkill):*' fzf-preview '[[ $group == "[process ID]" ]] && ps -p "$word" -o pid,user,%cpu,%mem,start,command 2>/dev/null'
 
 # =========================
-# AUTOSUGGESTIONS / HISTORY (ATUIN) / THEFUCK
+# AUTOSUGGEST / HISTORY
 # =========================
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#666"
 
+command -v atuin >/dev/null && eval "$(atuin init zsh)"
+command -v thefuck >/dev/null && eval "$(thefuck --alias)"
 
-# Atuin: history avançado (busca por dir, regex, etc)
-eval "$(atuin init zsh)"  # substitui history padrão pelo banco sqlite
-
-
-# TheFuck: corrigir comandos errados com `fuck`
-eval "$(thefuck --alias)"
-
-
-# aceitar sugestão com seta →
 bindkey '^[[C' autosuggest-accept
 
-
-# seta ↑ busca histórico por prefixo (history-substring-search)
 autoload -U up-line-or-beginning-search down-line-or-beginning-search
 zle -N up-line-or-beginning-search
 zle -N down-line-or-beginning-search
 bindkey '^[[A' up-line-or-beginning-search
 bindkey '^[[B' down-line-or-beginning-search
 
-
 # =========================
-# ZOXIDE (CD INTELIGENTE) + FZF
+# ZOXIDE
 # =========================
-eval "$(zoxide init zsh)"
+command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
-
-# z → vai para diretório frequente; zz → usar fzf
 z() { __zoxide_z "$@"; }
-zz() { __zoxide_zi "$@"; }  # abre prompt fzf com dirs ranqueados
-
+zz() { __zoxide_zi "$@"; }
 
 # =========================
 # HISTORY
@@ -161,52 +148,49 @@ HISTSIZE=100000
 SAVEHIST=100000
 HISTFILE=$HOME/.zsh_history
 
-
-setopt SHARE_HISTORY         # compartilha entre shells
-setopt HIST_IGNORE_ALL_DUPS  # remove duplicados
-setopt HIST_REDUCE_BLANKS    # remove espaços extras
-setopt INC_APPEND_HISTORY    # salva imediatamente
-setopt HIST_IGNORE_SPACE     # ignora comandos que começam com espaço
-
+setopt SHARE_HISTORY
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_REDUCE_BLANKS
+setopt INC_APPEND_HISTORY
+setopt HIST_IGNORE_SPACE
 
 # =========================
-# ALIASES BÁSICOS
+# ALIASES
 # =========================
-alias ls="eza --icons"
+command -v eza >/dev/null && alias ls="eza --icons"
 alias ll="eza -lh"
 alias la="eza -a"
 alias lla="eza -lah"
-alias cat="bat"
 
+command -v bat >/dev/null && alias cat="bat"
 
 alias ..="cd .."
 alias ...="cd ../.."
 alias ....="cd ../../.."
 
-
 alias reload="source ~/.zshrc"
 
-
-# segurança leve
 alias cp='cp -iv'
 alias mv='mv -iv'
 alias rm='rm -iv'
 
+# Instalador de apps standalone (.tar.gz, .zip, .AppImage)
+alias inst="app-install"
+alias instalar="app-install"
+
+# tldr em inglês
+alias tldr="tldr -L en"
 
 # =========================
-# FZF POWER ALIASES
+# FZF POWER
 # =========================
 alias ff="fzf"
-alias fkill="ps aux | fzf | awk '{print \\$2}' | xargs kill -9"
-alias fcd="cd \$(find . -type d -maxdepth 5 2>/dev/null | fzf)"
-
-
-# procurar arquivo e abrir no editor (nvim/code)
+alias fkill="ps aux | fzf | awk '{print \$2}' | xargs kill -9"
+alias fcd="cd \$(fd -t d . | fzf)"
 alias fedit='${EDITOR:-nvim} "$(fd . | fzf)"'
 
-
 # =========================
-# GIT HELPERS
+# GIT
 # =========================
 alias g='git'
 alias gst='git status -sb'
@@ -217,33 +201,13 @@ alias gcb='git checkout -b'
 alias gp='git push'
 alias gl='git log --oneline --graph --decorate --all'
 
-
-# fuzzy checkout de branch
+alias copy='wl-copy'
+alias paste='wl-paste'
 gcof() {
   local branch
   branch=$(git branch --all | sed "s/^[* ] //g" | fzf) || return
   git checkout "$(echo "$branch" | sed "s#remotes/[^/]*/##")"
 }
-
-
-# =========================
-# DOCKER / KUBECTL HELPERS (SE USAR)
-# =========================
-alias d='docker'
-alias dps='docker ps'
-alias dpsa='docker ps -a'
-alias di='docker images'
-alias dlogs='docker logs -f'
-alias dstopall='docker stop $(docker ps -q)'
-
-
-alias k='kubectl'
-alias kgp='kubectl get pods'
-alias kgs='kubectl get svc'
-alias kga='kubectl get all'
-alias kctx='kubectl config get-contexts'
-alias kusethis='kubectl config use-context'
-
 
 # =========================
 # FUNCTIONS
@@ -252,54 +216,32 @@ mkcd() {
   mkdir -p "$1" && cd "$1"
 }
 
-
-# abrir projeto pela raiz git
 cproj() {
   local root
-  root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "Not a git repo"; return 1; }
+  root=$(git rev-parse --show-toplevel 2>/dev/null) || return
   cd "$root"
 }
 
-
-# busca recursiva com ripgrep + fzf
 frg() {
   local file
-  file=$(rg --files | fzf --preview 'bat --style=numbers --color=always {} | head -200') || return
+  file=$(rg --files | fzf --preview 'bat --color=always {} | head -200') || return
   ${EDITOR:-nvim} "$file"
 }
 
-
 # =========================
-# EXTRAS / COMPLETIONS EXTRAS
-# =========================
-fpath=($HOME/.zsh/completions $fpath)
-
-
-# Angular CLI
-command -v ng >/dev/null && source <(ng completion script)
-
-
-# Google Cloud SDK
-[ -f "$HOME/google-cloud-sdk/path.zsh.inc" ] && source "$HOME/google-cloud-sdk/path.zsh.inc"
-[ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ] && source "$HOME/google-cloud-sdk/completion.zsh.inc"
-
-
-# =========================
-# NVM
+# NVM (lazy load se existir)
 # =========================
 export NVM_DIR="$HOME/.nvm"
-
-# Lazy load do NVM para reduzir startup
-lazy_load_nvm() {
-  unset -f nvm node npm npx
-  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-  [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
-}
-nvm() { lazy_load_nvm; nvm "$@"; }
-node() { lazy_load_nvm; node "$@"; }
-npm() { lazy_load_nvm; npm "$@"; }
-npx() { lazy_load_nvm; npx "$@"; }
-
+if [ -d "$NVM_DIR" ]; then
+  lazy_load_nvm() {
+    unset -f nvm node npm npx
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+  }
+  nvm() { lazy_load_nvm; nvm "$@"; }
+  node() { lazy_load_nvm; node "$@"; }
+  npm() { lazy_load_nvm; npm "$@"; }
+  npx() { lazy_load_nvm; npx "$@"; }
+fi
 
 # =========================
 # EDITOR / LANG
@@ -309,8 +251,33 @@ export VISUAL="nvim"
 export LANG=pt_BR.UTF-8
 export LC_ALL=pt_BR.UTF-8
 
+if [ -e /home/luiz/.nix-profile/etc/profile.d/nix.sh ]; then
+  . /home/luiz/.nix-profile/etc/profile.d/nix.sh
+fi
 
 # =========================
-# POWERLEVEL10K CONFIG
+# GITHUB TOKEN (via gh CLI)
 # =========================
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+if command -v gh >/dev/null 2>&1; then
+  export WTF_GITHUB_TOKEN="${WTF_GITHUB_TOKEN:-$(gh auth token 2>/dev/null)}"
+  export GITHUB_TOKEN="${GITHUB_TOKEN:-$WTF_GITHUB_TOKEN}"
+fi
+
+# =========================
+# PROMPT & GREETING
+# =========================
+eval "$(starship init zsh)"
+
+# Executa wtfutil na abertura do terminal interativo (se for um TTY real)
+if [[ -t 0 ]] && [[ -t 1 ]] && [[ -o interactive ]] && [[ -n "$TERM" ]] && [[ "$TERM" != "dumb" ]] && [[ -z "$WTF_RAN" ]]; then
+  export WTF_RAN=1
+  if command -v wtfutil >/dev/null; then
+    wtfutil
+    clear
+  fi
+fi
+
+# Executa fastfetch na abertura de terminais interativos
+if [[ -o interactive ]] && command -v fastfetch >/dev/null; then
+  fastfetch
+fi

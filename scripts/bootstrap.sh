@@ -91,12 +91,22 @@ backup_file() {
 
 backup_file "$HOME/.zshrc"
 backup_file "$HOME/.p10k.zsh"
+backup_file "$HOME/.tmux.conf"
 
 ln -fs "$DOTFILES_DIR/zsh/.zshrc" "$HOME/.zshrc"
 ln -fs "$DOTFILES_DIR/zsh/.p10k.zsh" "$HOME/.p10k.zsh"
+ln -fs "$DOTFILES_DIR/.tmux.conf" "$HOME/.tmux.conf"
 
 mkdir -p "$HOME/.config"
+ln -fs "$DOTFILES_DIR/starship/starship.toml" "$HOME/.config/starship.toml"
 ln -fs "$DOTFILES_DIR/nvim" "$HOME/.config/nvim"
+
+mkdir -p "$HOME/.local/bin"
+chmod +x "$DOTFILES_DIR/scripts/app-install.sh"
+ln -fs "$DOTFILES_DIR/scripts/app-install.sh" "$HOME/.local/bin/app-install"
+
+mkdir -p "$HOME/.oh-my-zsh/custom/completions"
+ln -fs "$DOTFILES_DIR/zsh/completions/_app-install" "$HOME/.oh-my-zsh/custom/completions/_app-install"
 
 echo "[*] Symlinks criados."
 

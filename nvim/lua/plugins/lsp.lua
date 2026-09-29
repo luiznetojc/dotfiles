@@ -43,6 +43,13 @@ return {
         map("n", "<leader>ca", vim.lsp.buf.code_action, "Code action")
         map("n", "<leader>rn", vim.lsp.buf.rename, "Rename")
         map("n", "<leader>f", function() vim.lsp.buf.format({ async = true }) end, "Format")
+
+        -- VS Code-like LSP navigation shortcuts.
+        map("n", "<F12>", vim.lsp.buf.definition, "Go to definition")
+        map("n", "<S-F12>", vim.lsp.buf.references, "References")
+        map("n", "<F2>", vim.lsp.buf.rename, "Rename symbol")
+        map("n", "<A-F12>", vim.lsp.buf.definition, "Peek definition")
+        map("n", "<C-.>", vim.lsp.buf.code_action, "Code action")
       end
 
       local servers = {
@@ -85,6 +92,8 @@ return {
       vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
       vim.keymap.set("n", "<leader>x", vim.diagnostic.open_float, { desc = "Line diagnostics" })
       vim.keymap.set("n", "<leader>xx", vim.diagnostic.setloclist, { desc = "Diagnostics list" })
+      vim.keymap.set("n", "<F8>", vim.diagnostic.goto_next, { desc = "Next problem" })
+      vim.keymap.set("n", "<S-F8>", vim.diagnostic.goto_prev, { desc = "Previous problem" })
     end,
   },
 }
